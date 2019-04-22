@@ -32,8 +32,8 @@ class RealDiv(common.BroadcastOp):
     pass
 
 
-@tf_op(["Abs", "Ceil", "Elu", "Exp", "Floor", "LeakyRelu", "Log", "LogSoftmax", "Neg", "Relu", "Sigmoid", "Sqrt",
-        "Tanh", "Softplus", "Softsign", "Reciprocal"])
+@tf_op(["Abs", "Ceil", "Elu", "Exp", "Floor", "LeakyRelu", "Log", "LogSoftmax", "Neg", "Reciprocal",
+        "Relu", "Selu", "Sigmoid", "Sqrt", "Softplus", "Softsign", "Tanh"])
 class DirectOp:
     @classmethod
     def version_4(cls, ctx, node, **kwargs):
