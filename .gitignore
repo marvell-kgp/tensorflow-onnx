@@ -13,3 +13,7 @@ __pycache__
 .eggs
 *.egg-info
 run.sh
+*.pb
+*.onnx
+*.gz
+*.zip
