@@ -69,7 +69,7 @@ def tflist_to_onnx(node_list, shape_override):
                 shape = utils.get_tf_tensor_shape(out)
             dtypes[out.name] = utils.map_tf_dtype(out.dtype)
             output_shapes[out.name] = shape
-    write_shapes(output_shapes, '/home/shivansh/dl/tensorflow-onnx/visualization/lstm_nodes_dim.txt')
+    write_str(output_shapes, '/home/shivansh/dl/tensorflow-onnx/visualization/lstm_nodes_dim.txt')
 
     # minimal conversion of attributes
     for node in ops:
