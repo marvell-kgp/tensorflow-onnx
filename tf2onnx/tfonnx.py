@@ -31,7 +31,7 @@ from . import constants, logging, schemas, utils, handler
 
 logger = logging.getLogger(__name__)
 
-from visualization.graph_vis import *
+from visualization.codes.generate_metadata.metadata import *
 
 # pylint: disable=useless-return,broad-except,logging-not-lazy,unused-argument,missing-docstring
 # FIXME:
@@ -45,6 +45,7 @@ def tflist_to_onnx(node_list, shape_override):
     """
     input_nodes_list = []
     output_nodes_list = []
+    node_name_list = []
 
     # ignore the following attributes
     ignored_attr = ["unknown_rank", "_class", "Tshape", "use_cudnn_on_gpu", "Index", "Tpaddings",
@@ -69,7 +70,8 @@ def tflist_to_onnx(node_list, shape_override):
                 shape = utils.get_tf_tensor_shape(out)
             dtypes[out.name] = utils.map_tf_dtype(out.dtype)
             output_shapes[out.name] = shape
-    write_str(output_shapes, '/home/shivansh/dl/tensorflow-onnx/visualization/lstm_nodes_dim.txt')
+
+    # write_str(output_shapes, '/home/shivansh/dl/tensorflow-onnx/visualization/output/metadata/lstm_nodes_dim.txt')
 
     # minimal conversion of attributes
     for node in ops:
@@ -116,11 +118,12 @@ def tflist_to_onnx(node_list, shape_override):
 
                 input_nodes_list.append(input_names)
                 output_nodes_list.append(output_names)
-                
+                node_name_list.append(node.name)
             except Exception as ex:
                 logger.error("pass1 convert failed for %s, ex=%s", node, ex)
                 raise
-    write_nodes(input_nodes_list, output_nodes_list, '/home/shivansh/dl/tensorflow-onnx/visualization/lstm_nodes.txt')
+    print(len(output_nodes_list))
+    write_nodes(input_nodes_list, output_nodes_list, node_name_list, output_shapes, '/home/shivansh/dl/tensorflow-onnx/visualization/output/metadata/lstm_tf.txt')
     return onnx_nodes, op_cnt, attr_cnt, output_shapes, dtypes
 
 
@@ -746,7 +749,7 @@ def process_tf_graph(tf_graph, continue_on_error=False, verbose=False, target=No
 
     g = Graph(onnx_nodes, output_shapes, dtypes, target, opset, extra_opset, output_names)
 
-    write_onnx(g, '/home/shivansh/dl/tensorflow-onnx/visualization/onnx_lstm_nodes.txt')
+    write_onnx(g, '/home/shivansh/dl/tensorflow-onnx/visualization/output/metadata/onnx_lstm_nodes.txt')
 
     # create ops mapping for the desired opsets
     ops_mapping = handler.tf_op.create_mapping(g.opset, g.extra_opset)
