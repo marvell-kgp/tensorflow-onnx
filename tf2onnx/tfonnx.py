@@ -32,7 +32,7 @@ from . import constants, logging, schemas, utils, handler
 logger = logging.getLogger(__name__)
 
 from visualization.codes.generate_metadata.metadata import *
-
+METADATA_DIR = '/home/shivansh/dl/tensorflow-onnx/visualization/output/metadata'
 # pylint: disable=useless-return,broad-except,logging-not-lazy,unused-argument,missing-docstring
 # FIXME:
 # pylint: disable=unused-variable
@@ -123,7 +123,7 @@ def tflist_to_onnx(node_list, shape_override):
                 logger.error("pass1 convert failed for %s, ex=%s", node, ex)
                 raise
     print(len(output_nodes_list))
-    write_nodes(input_nodes_list, output_nodes_list, node_name_list, output_shapes, '/home/shivansh/dl/tensorflow-onnx/visualization/output/metadata/lstm_tf.txt')
+    write_nodes(input_nodes_list, output_nodes_list, node_name_list, output_shapes, METADATA_DIR + '/tf_data.txt')
     return onnx_nodes, op_cnt, attr_cnt, output_shapes, dtypes
 
 
@@ -749,7 +749,7 @@ def process_tf_graph(tf_graph, continue_on_error=False, verbose=False, target=No
 
     g = Graph(onnx_nodes, output_shapes, dtypes, target, opset, extra_opset, output_names)
 
-    write_onnx(g, '/home/shivansh/dl/tensorflow-onnx/visualization/output/metadata/onnx_lstm_nodes.txt')
+    write_onnx(g, METADATA_DIR + '/onnx_data.txt')
 
     # create ops mapping for the desired opsets
     ops_mapping = handler.tf_op.create_mapping(g.opset, g.extra_opset)
