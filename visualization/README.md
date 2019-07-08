@@ -8,14 +8,18 @@
   python3 -m tf2onnx.convert --input model/frozen_model.pb --inputs X:0 --outputs output:0 --output ./lstm.onnx --verbose
   ```
 
-* Code for extracting metadata is in the following place:
-  * For dimension/shape data of graph, one can change location of file in following location:
-    * [write_str(output_shapes, '/home/shivansh/dl/tensorflow-onnx/visualization/lstm_nodes_dim.txt')](https://github.com/marvell-kgp/tensorflow-onnx/blob/30f77b3a07f8487caac1692683c727d0cc67d3e2/tf2onnx/tfonnx.py#L72)
-  * For getting nodes and edges metadata, one can change location of file in following location:
-    * [write_nodes(input_nodes_list, output_nodes_list, '/home/shivansh/dl/tensorflow-onnx/visualization/lstm_nodes.txt')](https://github.com/marvell-kgp/tensorflow-onnx/blob/30f77b3a07f8487caac1692683c727d0cc67d3e2/tf2onnx/tfonnx.py#L123)
+
+When you run script to convert model into its onnx version, metadata is dumped automatically in following file locations.
+
+##### For extracting metadata of Tensorflow graph
+
+* Code for extracting metadata(both nodes and dimesions) is in the following line:
+  * [write_nodes(input_nodes_list, output_nodes_list, node_name_list, output_shapes, '/home/shivansh/dl/tensorflow-onnx/visualization/output/metadata/lstm_tf.txt')](https://github.com/marvell-kgp/tensorflow-onnx/blob/dbdbeb3b2ef3a9cf085bdc5bdce0704d15991f3b/tf2onnx/tfonnx.py#L126)
+* Change the name of file to be dumped in accordingly.
 
 ##### For extracting metadata of ONNX graph
 
-* Code for extracting metadata(both nodes and dimensions) in the following place:
-  * [write_onnx(g, '/home/shivansh/dl/tensorflow-onnx/visualization/onnx_lstm_nodes.txt')](https://github.com/marvell-kgp/tensorflow-onnx/blob/30f77b3a07f8487caac1692683c727d0cc67d3e2/tf2onnx/tfonnx.py#L738)
+* Code for extracting metadata(both nodes and dimensions) in the following line:
+  * [write_onnx(g, '/home/shivansh/dl/tensorflow-onnx/visualization/output/metadata/onnx_lstm_nodes.txt')](https://github.com/marvell-kgp/tensorflow-onnx/blob/dbdbeb3b2ef3a9cf085bdc5bdce0704d15991f3b/tf2onnx/tfonnx.py#L752)
+  * Change the name of file to be dumped in accordingly.
 
