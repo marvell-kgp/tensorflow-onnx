@@ -44,3 +44,20 @@ optional arguments:
                         ../../output/graphs/lstm.pdf)
 
 ```
+### Instruction to get the statistics
+```bash
+cd codes/drawing_graphs/
+python graph_properties.py
+```
+```
+usage: graph_properties.py [-h] [--jsonfile JSONFILE]
+                           [--output_file OUTPUT_FILE]
+
+optional arguments:
+  -h, --help            show this help message and exit
+  --jsonfile JSONFILE   The metadata file (default:
+                        ../../output/metadata/lstm_tf.txt)
+  --output_file OUTPUT_FILE
+                        The output directory (default:
+                        ../../output/graphs/lstm.csv)
+```
