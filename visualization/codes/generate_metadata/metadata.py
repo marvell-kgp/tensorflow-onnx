@@ -60,7 +60,7 @@ def write_onnx(g, filename):
 	list_output = []
 	for node in g.get_nodes():
 		dict_node = {}
-		dict_node['op_name'] = node.name.split("/")[1] if '/' in node.name else node.name
+		dict_node['op_name'] = node.name.split("/")[0] if '/' in node.name else node.name
 
 		output_list = []
 		for name in node.output:
