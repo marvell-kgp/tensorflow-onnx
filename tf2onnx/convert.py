@@ -56,6 +56,8 @@ def get_args():
     parser.add_argument("--continue_on_error", help="continue_on_error", action="store_true")
     parser.add_argument("--verbose", "-v", help="verbose output, option is additive", action="count")
     parser.add_argument("--debug", help="debug mode", action="store_true")
+    parser.add_argument("--metadata_dir", help="dir to dump metadata of models")
+
     parser.add_argument("--fold_const", help="enable tf constant_folding transformation before conversion",
                         action="store_true")
     # experimental
@@ -142,7 +144,8 @@ def main():
                              shape_override=args.shape_override,
                              input_names=inputs,
                              output_names=outputs,
-                             inputs_as_nchw=args.inputs_as_nchw)
+                             inputs_as_nchw=args.inputs_as_nchw,
+                             metadata_dir=args.metadata_dir)
 
     onnx_graph = optimizer.optimize_graph(g)
     model_proto = onnx_graph.make_model("converted from {}".format(model_path))

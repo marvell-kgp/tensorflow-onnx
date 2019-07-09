@@ -28,17 +28,19 @@ from tf2onnx.rewriter import *  # pylint: disable=wildcard-import
 from tf2onnx.shape_inference import infer_shape
 from tf2onnx.utils import port_name
 from . import constants, logging, schemas, utils, handler
+import os
 
 logger = logging.getLogger(__name__)
 
 from visualization.codes.generate_metadata.metadata import *
-METADATA_DIR = '/home/shivansh/dl/tensorflow-onnx/visualization/output/metadata'
+
+ 
 # pylint: disable=useless-return,broad-except,logging-not-lazy,unused-argument,missing-docstring
 # FIXME:
 # pylint: disable=unused-variable
 
 
-def tflist_to_onnx(node_list, shape_override):
+def tflist_to_onnx(node_list, shape_override, metadata_dir):
     """
     Convert the tf-node list into an onnx graph with minimal rewrites so
     we can use the onnx graph as intermediate graph.
@@ -46,7 +48,7 @@ def tflist_to_onnx(node_list, shape_override):
     input_nodes_list = []
     output_nodes_list = []
     node_name_list = []
-
+    node_dim_list = []
     # ignore the following attributes
     ignored_attr = ["unknown_rank", "_class", "Tshape", "use_cudnn_on_gpu", "Index", "Tpaddings",
                     "TI", "Tparams", "Tindices", "Tlen", "Tdim", "dynamic_size", "Tmultiples",
@@ -71,7 +73,7 @@ def tflist_to_onnx(node_list, shape_override):
             dtypes[out.name] = utils.map_tf_dtype(out.dtype)
             output_shapes[out.name] = shape
 
-    # write_str(output_shapes, '/home/shivansh/dl/tensorflow-onnx/visualization/output/metadata/lstm_nodes_dim.txt')
+    # write_str(output_shapes, METADATA_DIR + '/tf_shapes.txt')
 
     # minimal conversion of attributes
     for node in ops:
@@ -118,20 +120,18 @@ def tflist_to_onnx(node_list, shape_override):
 
                 input_nodes_list.append(input_names)
                 output_nodes_list.append(output_names)
-                node_name_list.append(node.name)
             except Exception as ex:
                 logger.error("pass1 convert failed for %s, ex=%s", node, ex)
                 raise
-    print(len(output_nodes_list))
-    write_nodes(input_nodes_list, output_nodes_list, node_name_list, output_shapes, METADATA_DIR + '/tf_data.txt')
+    write_nodes(ops, metadata_dir + '/tf_data.txt')
     return onnx_nodes, op_cnt, attr_cnt, output_shapes, dtypes
 
 
-def tensorflow_to_onnx(graph, shape_override):
+def tensorflow_to_onnx(graph, shape_override, metadata_dir):
     """
     Load tensorflow graph and do a conversion.
     """
-    return tflist_to_onnx(graph.get_operations(), shape_override)
+    return tflist_to_onnx(graph.get_operations(), shape_override, metadata_dir)
 
 
 def rewrite_transpose(g, ops):
@@ -688,7 +688,7 @@ def run_rewriters(g, funcs, continue_on_error):
 def process_tf_graph(tf_graph, continue_on_error=False, verbose=False, target=None,
                      opset=None, custom_op_handlers=None, custom_rewriter=None,
                      extra_opset=None, shape_override=None, inputs_as_nchw=None,
-                     input_names=None, output_names=None):
+                     input_names=None, output_names=None, metadata_dir=None):
     """Convert tensorflow graph to onnx graph.
         Args:
             tf_graph: tensorflow graph
@@ -730,7 +730,7 @@ def process_tf_graph(tf_graph, continue_on_error=False, verbose=False, target=No
     if target is None:
         target = constants.DEFAULT_TARGET
 
-    onnx_nodes, op_cnt, attr_cnt, output_shapes, dtypes = tensorflow_to_onnx(tf_graph, shape_override)
+    onnx_nodes, op_cnt, attr_cnt, output_shapes, dtypes = tensorflow_to_onnx(tf_graph, shape_override, metadata_dir)
 
     io_to_check = []
     if input_names:
@@ -749,7 +749,7 @@ def process_tf_graph(tf_graph, continue_on_error=False, verbose=False, target=No
 
     g = Graph(onnx_nodes, output_shapes, dtypes, target, opset, extra_opset, output_names)
 
-    write_onnx(g, METADATA_DIR + '/onnx_data.txt')
+    write_onnx(g, metadata_dir + '/onnx_data.txt')
 
     # create ops mapping for the desired opsets
     ops_mapping = handler.tf_op.create_mapping(g.opset, g.extra_opset)
