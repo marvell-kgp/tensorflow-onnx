@@ -1,3 +1,5 @@
+import json
+
 def write(lists, filename):	
 	writer = open(filename, 'w')
 	for idx, item in enumerate(lists):
@@ -40,8 +42,12 @@ def write_nodes(list_input, list_output, list_node, output_shapes, filename):
 	# 	print(input_node, file=writer)
 	# 	print('Output Node:', file=writer)
 	# 	print(output_node, file=writer)
-	print('*******************   ' + str(len(list_output)) )
-	print(list_output_nodes, file=writer)
+	#print('*******************   ' + str(len(list_output)) )
+	outstr = str(list_output)
+	outstr = outstr.replace("\'", "\"")
+	parsed_json=json.loads(outstr)
+	print(json.dumps(parsed_json, indent = 4,sort_keys=False), file=writer)
+	#print(list_output_nodes, file=writer)
 	writer.close()
 
 def write_str(content, filename):	
@@ -74,6 +80,7 @@ def write_onnx(g, filename):
 		dict_node['inputs'] = input_list
 		
 		list_output.append(dict_node)
+                
 		# print("Input Node:", file=writer)
 		# print(input_names, file=writer)
 		# print("Output Node:", file=writer)
@@ -81,5 +88,9 @@ def write_onnx(g, filename):
 		# print("Shape:", file=writer)
 		# print(g.get_shape(node.output[0]), file=writer)
 		# print(node.summary, file=writer)
-	print(list_output, file=writer)
+	#print(str(list_output))	
+	outstr = str(list_output)
+	outstr = outstr.replace("\'", "\"")
+	parsed_json=json.loads(outstr)
+	print(json.dumps(parsed_json, indent = 4,sort_keys=False), file=writer)
 	writer.close()
