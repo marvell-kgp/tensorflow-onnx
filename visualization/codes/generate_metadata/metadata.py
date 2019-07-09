@@ -22,16 +22,22 @@ def write_nodes(ops, filename):
 		for node_output in node.outputs:
 			output_dict = {}
 			output_dict['name'] = node_output.name
-			output_dict['shape'] = utils.get_tf_tensor_shape(node_output)
+			shape = utils.get_tf_tensor_shape(node_output)
+			if (len(shape) > 0) and (shape[0] is None):
+				shape[0] = -1
+			output_dict['shape'] = shape
 			output_list.append(output_dict)
 		dict_node['output'] = output_list
-
+# 
 
 		input_list = []
 		for node_input in node.inputs:
 			input_dict = {}
 			input_dict['name'] = node_input.name
-			input_dict['shape'] = utils.get_tf_tensor_shape(node_input)
+			shape = utils.get_tf_tensor_shape(node_input)
+			if (len(shape) > 0) and (shape[0] is None):
+				shape[0] = -1
+			input_dict['shape'] = shape
 			input_list.append(input_dict)
 		dict_node['input'] = input_list
 
@@ -41,7 +47,7 @@ def write_nodes(ops, filename):
 	outstr = outstr.replace("\'", "\"")
 	parsed_json=json.loads(outstr)
 	print(json.dumps(parsed_json, indent = 4,sort_keys=False), file=writer)
-	# print(list_output_nodes, file=writer)
+	print(list_output_nodes, file=writer)
 	writer.close()
 
 def write_str(content, filename):	
