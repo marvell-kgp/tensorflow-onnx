@@ -22,4 +22,30 @@ When you run script to convert model into its onnx version, metadata is dumped a
 * Code for extracting metadata(both nodes and dimensions) in the following line:
   * [write_onnx(g, '/home/shivansh/dl/tensorflow-onnx/visualization/output/metadata/onnx_lstm_nodes.txt')](https://github.com/marvell-kgp/tensorflow-onnx/blob/dbdbeb3b2ef3a9cf085bdc5bdce0704d15991f3b/tf2onnx/tfonnx.py#L752)
   * Change the name of file to be dumped in accordingly.
+  
+### Instruction to draw a graph from the json file
 
+#### Requirements
+- `pygraphviz 1.5`
+- `networkx 2.2`
+
+#### Run the following commands
+```bash
+cd codes/drawing_graphs/
+python convert_graph.py
+```
+```
+usage: convert_graph.py [-h] [--jsonfile JSONFILE] [--output_dir OUTPUT_DIR]
+                        [--output_file OUTPUT_FILE]
+
+optional arguments:
+  -h, --help            show this help message and exit
+  --jsonfile JSONFILE   The metadata file (default:
+                        ../../output/metadata/lstm_tf.txt)
+  --output_dir OUTPUT_DIR
+                        The output directory (default: ../../output/graphs/)
+  --output_file OUTPUT_FILE
+                        The output directory (default:
+                        ../../output/graphs/lstm.pdf)
+
+```
