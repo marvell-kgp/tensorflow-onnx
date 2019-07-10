@@ -40,7 +40,7 @@ def write_nodes(ops, filename):
 				shape[0] = -1
 			input_dict['shape'] = shape
 			input_list.append(input_dict)
-		dict_node['input'] = input_list
+		dict_node['inputs'] = input_list
 
 		list_output_nodes.append(dict_node)
 
@@ -48,7 +48,7 @@ def write_nodes(ops, filename):
 	outstr = outstr.replace("\'", "\"")
 	parsed_json=json.loads(outstr)
 	print(json.dumps(parsed_json, indent = 4,sort_keys=False), file=writer)
-	print(list_output_nodes, file=writer)
+	# print(list_output_nodes, file=writer)
 	writer.close()
 
 def write_str(content, filename):	
