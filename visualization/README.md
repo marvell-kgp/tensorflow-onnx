@@ -11,6 +11,8 @@
 
 When you run script to convert model into its onnx version, metadata is dumped automatically `metadata_dir`.
 
+You can download sample LSTM model frozen file from [here](https://drive.google.com/open?id=1N9LPDXWQvdFSD4qQ-sGCu2p-4HdoHwKV).
+
 ##### For extracting metadata of Tensorflow graph
 
 * File will be by default saved in json format as `tf_data.txt`.
