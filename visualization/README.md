@@ -20,9 +20,25 @@ When you run script to convert model into its onnx version, metadata is dumped a
 * File will be by default saved in json format as `onnx_data.txt`.
 ### Instruction to draw a graph from the json file
 
-#### Requirements
+#### Requirements for python 2
 - `pygraphviz 1.5`
 - `networkx 2.2`
+- `python 2.7`
+- `pdftk`
+
+
+#### Requirements for python 3
+- `pygraphviz 1.5`
+- `networkx 2.3`
+- `python 3.6`
+- `pdftk`
+
+###### Instructuion to install pdftk
+```bash
+sudo add-apt-repository ppa:malteworld/ppa
+sudo apt update
+sudo apt install pdftk
+```
 
 #### Run the following commands
 ```bash
