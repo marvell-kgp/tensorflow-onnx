@@ -25,7 +25,6 @@ When you run script to convert model into its onnx version, metadata is dumped a
 - `networkx 2.2`
 - `python 2.7`
 - `pdftk`
-- `sudo apt install default-jre-headless libcommons-lang3-java libbcprov-java`
 
 
 #### Requirements for python 3
