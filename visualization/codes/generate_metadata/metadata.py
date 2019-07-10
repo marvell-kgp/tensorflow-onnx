@@ -64,10 +64,10 @@ def write_onnx(g, filename):
 		dict_node['op_name'] = node.name.split(":")[0] if '/' in node.name else node.name
 
 		output_list = []
-		for name in node.output:
+		for output_name in node.output:
 			output_dict = {}
-			output_dict['name'] = name
-			output_dict['shape'] = g.get_shape(name) 
+			output_dict['name'] = output_name.split("[")[0]
+			output_dict['shape'] = g.get_shape(output_name) 
 			output_list.append(output_dict)
 		dict_node['output'] = output_list
 
@@ -75,7 +75,7 @@ def write_onnx(g, filename):
 		input_names = ["{}{}".format(n, g.get_shape(n)) for n in node.input]
 		for input_name in input_names:
 			input_node = {}
-			input_node['name'] = input_name.split("{")[0]
+			input_node['name'] = input_name.split("[")[0]
 			input_node['shape'] = input_name.split("[")[1].split("]")[0].replace("," , "").split()
 			input_list.append(input_node)
 		dict_node['inputs'] = input_list
