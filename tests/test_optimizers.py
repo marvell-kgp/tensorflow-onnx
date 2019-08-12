@@ -65,6 +65,13 @@ class OptimizerTests(Tf2OnnxBackendTestBase):
             ),
         )
         return node
+
+    def make_model(self, graph, producer_name="onnx-tests"):
+        imp = OperatorSetIdProto()
+        imp.version = self.config.opset
+
+        model_proto = helper.make_model(graph, producer_name=producer_name, opset_imports=[imp])
+        return model_proto
     # Tranpose Optimizer Tests Start
 
     def run_transpose_compare(self, output_names_with_port, onnx_feed_dict, origin_proto,
@@ -99,7 +106,7 @@ class OptimizerTests(Tf2OnnxBackendTestBase):
                 [helper.make_tensor_value_info("res", TensorProto.FLOAT, output_shape)],
             )
 
-            model_proto = helper.make_model(graph, producer_name="onnx-tests")
+            model_proto = self.make_model(graph, producer_name="onnx-tests")
             feed_dict = {"input_data1": np.random.randn(*input_shape_with_trans).astype(np.float32),
                          "input_data2": np.random.randn(*input_shape).astype(np.float32),
                          }
@@ -121,7 +128,7 @@ class OptimizerTests(Tf2OnnxBackendTestBase):
             [helper.make_tensor_value_info("res", TensorProto.FLOAT, (2, 3, 4, 5))],
         )
 
-        model_proto = helper.make_model(graph, producer_name="onnx-tests")
+        model_proto = self.make_model(graph, producer_name="onnx-tests")
         feed_dict = {"input_data1": np.random.randn(2, 3, 4, 5).astype(np.float32),
                      "input_data2": np.random.randn(3).astype(np.float32),
                      }
@@ -141,7 +148,7 @@ class OptimizerTests(Tf2OnnxBackendTestBase):
             [helper.make_tensor_value_info("res", TensorProto.FLOAT, (2, 3, 4, 5))],
         )
 
-        model_proto = helper.make_model(graph, producer_name="onnx-tests")
+        model_proto = self.make_model(graph, producer_name="onnx-tests")
         feed_dict = {"input_data1": np.random.randn(2, 3, 4, 5).astype(np.float32),
                      "input_data2": np.random.randn(2, 4, 5, 3).astype(np.float32),
                      }
@@ -159,7 +166,7 @@ class OptimizerTests(Tf2OnnxBackendTestBase):
             [helper.make_tensor_value_info("Z1", TensorProto.FLOAT, (2, 3, 4, 5))],
         )
 
-        model_proto = helper.make_model(graph, producer_name="onnx-tests")
+        model_proto = self.make_model(graph, producer_name="onnx-tests")
         self.run_transpose_compare(["Z1"], {"X": np.random.randn(2, 3, 4, 5).astype(np.float32)},
                                    model_proto, remaining_transpose_num=0)
 
@@ -175,10 +182,36 @@ class OptimizerTests(Tf2OnnxBackendTestBase):
             [helper.make_tensor_value_info("Z1", TensorProto.FLOAT, (2, 3, 4, 5))],
         )
 
-        model_proto = helper.make_model(graph, producer_name="onnx-tests")
+        model_proto = self.make_model(graph, producer_name="onnx-tests")
         self.run_transpose_compare(["Z1"], {"X": np.random.randn(2, 3, 4, 5).astype(np.float32)},
                                    model_proto, remaining_transpose_num=0)
 
+    @check_opset_min_version(10, "Slice in opset 10 can accept dymaic 'start' and 'ends'")
+    def test_transpose_slice(self):
+        starts = np.array([0, 0, 0, 0], dtype=np.int64)
+        ends = np.array([1, 2, 1, 2], dtype=np.int64)
+        axes = np.array([0, 1, 2, 3], dtype=np.int64)
+        node1 = helper.make_node("Transpose", ["X"], ["Y"], perm=[0, 2, 3, 1], name="trans_1")
+        node2 = helper.make_node("Slice", ["Y", "starts", "ends", "axes"], ["Z"], name="relu")
+        node3 = helper.make_node("Transpose", ["Z"], ["Z1"], perm=[0, 3, 1, 2], name="trans_2")
+
+        graph = helper.make_graph(
+            [node1, node2, node3],
+            "relu-test",
+            [helper.make_tensor_value_info("X", TensorProto.FLOAT, (2, 3, 4, 5))],
+            [helper.make_tensor_value_info("Z1", TensorProto.FLOAT, (1, 2, 2, 1))],
+            [
+                helper.make_tensor("starts", TensorProto.INT64, starts.shape, starts),
+                helper.make_tensor("ends", TensorProto.INT64, ends.shape, ends),
+                helper.make_tensor("axes", TensorProto.INT64, axes.shape, axes)
+            ]
+        )
+
+        model_proto = self.make_model(graph, producer_name="onnx-tests")
+        self.run_transpose_compare(["Z1"], {"X": np.random.randn(2, 3, 4, 5).astype(np.float32)},
+                                   model_proto, remaining_transpose_num=0)
+
+    @check_opset_min_version(8, "Max in opset 10 supports broadcasting")
     def test_transpose_max(self):
         const_1_val = [2.0]
         const_1 = helper.make_tensor("const_1", TensorProto.FLOAT, (1,), const_1_val)
@@ -203,10 +236,11 @@ class OptimizerTests(Tf2OnnxBackendTestBase):
             [helper.make_tensor_value_info("Z1", TensorProto.FLOAT, (2, 3, 4, 5))],
         )
 
-        model_proto = helper.make_model(graph, producer_name="onnx-tests")
+        model_proto = self.make_model(graph, producer_name="onnx-tests")
         self.run_transpose_compare(["Z1"], {"X": np.random.randn(2, 3, 4, 5).astype(np.float32)},
                                    model_proto, remaining_transpose_num=0)
 
+    @check_opset_min_version(8, "Max in opset 10 supports broadcasting")
     def test_transpose_max_input_non_const(self):
         const_1_val = [2.0]
         const_1 = helper.make_tensor("const_1", TensorProto.FLOAT, (1,), const_1_val)
@@ -228,7 +262,7 @@ class OptimizerTests(Tf2OnnxBackendTestBase):
             [helper.make_tensor_value_info("Z1", TensorProto.FLOAT, (2, 3, 4, 5))],
         )
 
-        model_proto = helper.make_model(graph, producer_name="onnx-tests")
+        model_proto = self.make_model(graph, producer_name="onnx-tests")
         self.run_transpose_compare(["Z1"], {"X": np.random.randn(2, 3, 4, 5).astype(np.float32),
                                             "non_const": np.random.randn(2, 4, 5, 3).astype(np.float32)},
                                    model_proto, remaining_transpose_num=1)
@@ -245,7 +279,7 @@ class OptimizerTests(Tf2OnnxBackendTestBase):
             [helper.make_tensor_value_info("OUT", TensorProto.FLOAT, (2, 4, 5, 3))],
         )
 
-        model_proto = helper.make_model(graph, producer_name="onnx-tests")
+        model_proto = self.make_model(graph, producer_name="onnx-tests")
         self.run_transpose_compare(["OUT"], {"X": np.random.randn(2, 3, 4, 5).astype(np.float32)},
                                    model_proto, remaining_transpose_num=1)
 
@@ -260,7 +294,7 @@ class OptimizerTests(Tf2OnnxBackendTestBase):
             [helper.make_tensor_value_info("Z", TensorProto.INT64, [4])],
         )
 
-        model_proto = helper.make_model(graph, producer_name="onnx-tests")
+        model_proto = self.make_model(graph, producer_name="onnx-tests")
         self.run_transpose_compare(["Z"], {"X": np.random.randn(2, 3, 4, 5).astype(np.float32)},
                                    model_proto, remaining_transpose_num=0)
 
@@ -275,7 +309,7 @@ class OptimizerTests(Tf2OnnxBackendTestBase):
             [helper.make_tensor_value_info("Z", TensorProto.FLOAT, (2, 4, 5, 3))],
         )
 
-        model_proto = helper.make_model(graph, producer_name="onnx-tests")
+        model_proto = self.make_model(graph, producer_name="onnx-tests")
         self.run_transpose_compare(["Z"], {"X": np.random.randn(2, 3, 4, 5).astype(np.float32)},
                                    model_proto, remaining_transpose_num=1)
 
@@ -291,7 +325,7 @@ class OptimizerTests(Tf2OnnxBackendTestBase):
             [helper.make_tensor_value_info("Z", TensorProto.FLOAT, (4, 5, 3))],
         )
 
-        model_proto = helper.make_model(graph, producer_name="onnx-tests")
+        model_proto = self.make_model(graph, producer_name="onnx-tests")
         model_after_opt = self.run_transpose_compare(["Z"], {"X": np.random.randn(1, 3, 4, 5).astype(np.float32)},
                                                      model_proto, remaining_transpose_num=1)
         self.check_transpose_perm(model_after_opt, [1, 2, 0])
@@ -308,7 +342,7 @@ class OptimizerTests(Tf2OnnxBackendTestBase):
             [helper.make_tensor_value_info("Z", TensorProto.FLOAT, (3, 5, 4))],
         )
 
-        model_proto = helper.make_model(graph, producer_name="onnx-tests")
+        model_proto = self.make_model(graph, producer_name="onnx-tests")
         model_after_opt = self.run_transpose_compare(["Z"], {"X": np.random.randn(3, 4, 1, 5).astype(np.float32)},
                                                      model_proto, remaining_transpose_num=1)
         self.check_transpose_perm(model_after_opt, [0, 2, 1])
@@ -325,7 +359,7 @@ class OptimizerTests(Tf2OnnxBackendTestBase):
             [helper.make_tensor_value_info("Z", TensorProto.FLOAT, (3, 4, 5))],
         )
 
-        model_proto = helper.make_model(graph, producer_name="onnx-tests")
+        model_proto = self.make_model(graph, producer_name="onnx-tests")
         self.run_transpose_compare(["Z"], {"X": np.random.randn(3, 1, 4, 5).astype(np.float32)},
                                    model_proto, remaining_transpose_num=0)
 
@@ -341,7 +375,7 @@ class OptimizerTests(Tf2OnnxBackendTestBase):
             [helper.make_tensor_value_info("Z", TensorProto.FLOAT, (3, 5))],
         )
 
-        model_proto = helper.make_model(graph, producer_name="onnx-tests")
+        model_proto = self.make_model(graph, producer_name="onnx-tests")
         self.run_transpose_compare(["Z"], {"X": np.random.randn(3, 1, 1, 5).astype(np.float32)},
                                    model_proto, remaining_transpose_num=0)
 
@@ -390,7 +424,7 @@ class OptimizerTests(Tf2OnnxBackendTestBase):
             [helper.make_tensor_value_info("Y", TensorProto.FLOAT, ["unknow"] * 4)],
         )
 
-        model_proto = helper.make_model(graph, producer_name="onnx-tests")
+        model_proto = self.make_model(graph, producer_name="onnx-tests")
         self.run_transpose_compare(["Y"], {"array": np.random.randn(10, 3, 4, 5).astype(np.float32)},
                                    model_proto, remaining_transpose_num=0)
 
@@ -416,7 +450,7 @@ class OptimizerTests(Tf2OnnxBackendTestBase):
                     [helper.make_tensor_value_info("res", TensorProto.FLOAT, io_shape)],
                 )
 
-                model_proto = helper.make_model(graph, producer_name="onnx-tests")
+                model_proto = self.make_model(graph, producer_name="onnx-tests")
                 self.run_transpose_compare(["res"], {"X": np.random.randn(2, 3, 4, 5).astype(np.float32)},
                                            model_proto, remaining_transpose_num=0)
 
@@ -440,7 +474,7 @@ class OptimizerTests(Tf2OnnxBackendTestBase):
                     [helper.make_tensor_value_info("res", TensorProto.FLOAT, io_shape)],
                 )
 
-                model_proto = helper.make_model(graph, producer_name="onnx-tests")
+                model_proto = self.make_model(graph, producer_name="onnx-tests")
                 self.run_transpose_compare(["res"], {"X": np.random.randn(2, 3, 4, 5).astype(np.float32),
                                                      "non_const": np.random.randn(*non_const_shape).astype(np.float32)},
                                            model_proto, remaining_transpose_num=1)
@@ -459,7 +493,7 @@ class OptimizerTests(Tf2OnnxBackendTestBase):
             [helper.make_tensor_value_info("res", TensorProto.FLOAT, (1, 1, 3, 3))],
         )
 
-        model_proto = helper.make_model(graph, producer_name="onnx-tests")
+        model_proto = self.make_model(graph, producer_name="onnx-tests")
         self.run_transpose_compare(["res"], {"X": np.random.randn(1, 1, 3, 3).astype(np.float32),
                                              "A": np.random.randn(1, 3, 3, 1).astype(np.float32)},
                                    model_proto, remaining_transpose_num=0)
@@ -480,7 +514,7 @@ class OptimizerTests(Tf2OnnxBackendTestBase):
             [helper.make_tensor_value_info("res", TensorProto.FLOAT, (1, 1, 3, 3))],
         )
 
-        model_proto = helper.make_model(graph, producer_name="onnx-tests")
+        model_proto = self.make_model(graph, producer_name="onnx-tests")
         self.run_transpose_compare(["res"], {"X": np.random.randn(1, 1, 3, 3).astype(np.float32)},
                                    model_proto, remaining_transpose_num=0)
 
@@ -503,7 +537,7 @@ class OptimizerTests(Tf2OnnxBackendTestBase):
             [helper.make_tensor_value_info("res", TensorProto.FLOAT, (1, 16, 1, 1))],
         )
 
-        model_proto = helper.make_model(graph, producer_name="onnx-tests")
+        model_proto = self.make_model(graph, producer_name="onnx-tests")
         self.run_transpose_compare(["res"], {"x": np.random.randn(1, 5, 3, 3).astype(np.float32),
                                              "W": np.random.randn(16, 5, 3, 3).astype(np.float32)},
                                    model_proto, remaining_transpose_num=0)
@@ -528,7 +562,7 @@ class OptimizerTests(Tf2OnnxBackendTestBase):
             [helper.make_tensor_value_info("res", TensorProto.FLOAT, (1, 1, 3, 3))],
         )
 
-        model_proto = helper.make_model(graph, producer_name="onnx-tests")
+        model_proto = self.make_model(graph, producer_name="onnx-tests")
         self.run_transpose_compare(["res"], {"x": np.random.randn(1, 1, 5, 5).astype(np.float32),
                                              "W": np.random.randn(1, 1, 3, 3).astype(np.float32)},
                                    model_proto, remaining_transpose_num=0)
@@ -545,7 +579,7 @@ class OptimizerTests(Tf2OnnxBackendTestBase):
             [helper.make_tensor_value_info("res", TensorProto.FLOAT, (2, 6, 4, 8))],
         )
 
-        model_proto = helper.make_model(graph, producer_name="onnx-tests")
+        model_proto = self.make_model(graph, producer_name="onnx-tests")
         self.run_transpose_compare(["res"], {"X": np.random.randn(1, 3, 4, 5).astype(np.float32)},
                                    model_proto, remaining_transpose_num=0)
 
@@ -561,7 +595,7 @@ class OptimizerTests(Tf2OnnxBackendTestBase):
             [helper.make_tensor_value_info("res", TensorProto.FLOAT, (1, 3, 1, 1))],
         )
 
-        model_proto = helper.make_model(graph, producer_name="onnx-tests")
+        model_proto = self.make_model(graph, producer_name="onnx-tests")
         self.run_transpose_compare(["res"], {"X": np.random.randn(1, 3, 4, 5).astype(np.float32)},
                                    model_proto, remaining_transpose_num=0)
 
@@ -606,7 +640,7 @@ class OptimizerTests(Tf2OnnxBackendTestBase):
                 [helper.make_tensor_value_info("Y", TensorProto.FLOAT, result_shape)],
             )
 
-            model_proto = helper.make_model(graph, producer_name="onnx-tests")
+            model_proto = self.make_model(graph, producer_name="onnx-tests")
             self.run_transpose_compare(["Y"], {"X": np.random.randn(*input_shape_np).astype(np.float32)},
                                        model_proto, remaining_transpose_num=0)
 
@@ -625,7 +659,7 @@ class OptimizerTests(Tf2OnnxBackendTestBase):
                 [helper.make_tensor_value_info("Y", TensorProto.FLOAT, result_shape)],
             )
 
-            model_proto = helper.make_model(graph, producer_name="onnx-tests")
+            model_proto = self.make_model(graph, producer_name="onnx-tests")
             self.run_transpose_compare(["Y"], {"X": np.random.randn(*input_shape_np).astype(np.float32)},
                                        model_proto, remaining_transpose_num=0)
     # Tranpose Optimizer Tests End
@@ -649,7 +683,7 @@ class OptimizerTests(Tf2OnnxBackendTestBase):
             [helper.make_tensor_value_info("Z1", TensorProto.INT64, [4])],
         )
 
-        model_proto = helper.make_model(graph, producer_name="onnx-tests")
+        model_proto = self.make_model(graph, producer_name="onnx-tests")
         self.run_identity_compare(["Z1"], {"X": np.random.randn(2, 3, 4, 5).astype(np.float32)},
                                   model_proto, remaining_identity_num=0)
 
@@ -664,7 +698,7 @@ class OptimizerTests(Tf2OnnxBackendTestBase):
             [helper.make_tensor_value_info("Y", TensorProto.FLOAT, (2, 3, 4, 5))],
         )
 
-        model_proto = helper.make_model(graph, producer_name="onnx-tests")
+        model_proto = self.make_model(graph, producer_name="onnx-tests")
         self.run_identity_compare(["Y"], {"X": np.random.randn(2, 3, 4, 5).astype(np.float32)},
                                   model_proto, remaining_identity_num=1)
 
@@ -685,7 +719,7 @@ class OptimizerTests(Tf2OnnxBackendTestBase):
              helper.make_tensor_value_info("Z2", TensorProto.FLOAT, (2, 3, 4, 5))],
         )
 
-        model_proto = helper.make_model(graph, producer_name="onnx-tests")
+        model_proto = self.make_model(graph, producer_name="onnx-tests")
         self.run_identity_compare(["Z1", "Z2"], {"X": np.random.randn(2, 3, 4, 5).astype(np.float32)},
                                   model_proto, remaining_identity_num=1)
 
@@ -749,7 +783,7 @@ class OptimizerTests(Tf2OnnxBackendTestBase):
             [helper.make_tensor_value_info("Z1", TensorProto.INT64, [4])],
         )
 
-        model_proto = helper.make_model(graph, producer_name="onnx-tests")
+        model_proto = self.make_model(graph, producer_name="onnx-tests")
         self.run_identity_compare(["Z1"], {"X": np.random.randn(2, 3, 4, 5).astype(np.float32)},
                                   model_proto, remaining_identity_num=0)
 
@@ -758,9 +792,12 @@ class OptimizerTests(Tf2OnnxBackendTestBase):
     # Merge Duplicated Nodes Optimizer Tests Start
 
     def run_merge_duplicated_nodes_compare(self, output_names_with_port, onnx_feed_dict, origin_proto,
-                                           op_type=None, remaining_op_num=None, debug=False, rtol=1e-07):
-        self.run_and_compare(output_names_with_port, onnx_feed_dict, origin_proto, op_type=op_type,
-                             remaining_op_num=remaining_op_num, debug=debug, rtol=rtol)
+                                           op_type=None, remaining_op_num=None, debug=False, rtol=1e-07,
+                                           graph_validator=None):
+        new_proto = self.run_and_compare(output_names_with_port, onnx_feed_dict, origin_proto, op_type=op_type,
+                                         remaining_op_num=remaining_op_num, debug=debug, rtol=rtol)
+        if graph_validator:
+            self.assertTrue(graph_validator(new_proto.graph))
 
     def test_duplicated_duplicated_input(self):
         # same input or not
@@ -777,7 +814,7 @@ class OptimizerTests(Tf2OnnxBackendTestBase):
             [helper.make_tensor_value_info("OUT", TensorProto.FLOAT, (5, 5))],
         )
 
-        model_proto = helper.make_model(graph, producer_name="onnx-tests")
+        model_proto = self.make_model(graph, producer_name="onnx-tests")
         self.run_merge_duplicated_nodes_compare(["OUT"], {"X": np.random.randn(5, 5).astype(np.float32)}, model_proto,
                                                 op_type="Add", remaining_op_num=2)
 
@@ -796,11 +833,14 @@ class OptimizerTests(Tf2OnnxBackendTestBase):
             [helper.make_tensor_value_info("OUT", TensorProto.FLOAT, (5,))],
         )
 
-        model_proto = helper.make_model(graph, producer_name="onnx-tests")
+        model_proto = self.make_model(graph, producer_name="onnx-tests")
         self.run_merge_duplicated_nodes_compare(["OUT"], {"X": np.random.randn(5, 5).astype(np.float32)}, model_proto,
                                                 op_type="ReduceSum", remaining_op_num=2)
 
-    @check_opset_min_version(9, "Constant")
+    def _check_initializer_num(self, graph_proto, num):
+        print(len(graph_proto.initializer))
+        return num == len(graph_proto.initializer)
+
     def test_duplicated_duplicated_constant(self):
         const_val = np.array([1, 2, 3], dtype=np.float32)
         tensor_1 = helper.make_tensor("tensor_1", TensorProto.FLOAT, const_val.shape, const_val)
@@ -822,12 +862,33 @@ class OptimizerTests(Tf2OnnxBackendTestBase):
             [helper.make_tensor_value_info("OUT", TensorProto.FLOAT, (3,))],
         )
 
-        imp = OperatorSetIdProto()
-        imp.version = self.config.opset
+        model_proto = self.make_model(graph, producer_name="onnx-tests")
+        self.run_merge_duplicated_nodes_compare(["OUT"], {}, model_proto, op_type="Constant", remaining_op_num=0,
+                                                graph_validator=lambda g: self._check_initializer_num(g, 1))
 
-        model_proto = helper.make_model(graph, producer_name="onnx-tests", opset_imports=[imp])
-        self.run_merge_duplicated_nodes_compare(["OUT"], {}, model_proto,
-                                                op_type="Constant", remaining_op_num=1)
+    def test_duplicated_duplicated_constant_and_initializer(self):
+        const_val = np.array([1, 2, 3], dtype=np.float32)
+        tensor_1 = helper.make_tensor("value0", TensorProto.FLOAT, const_val.shape, const_val)
+        tensor_2 = helper.make_tensor("value1", TensorProto.FLOAT, const_val.shape, const_val)
+        tensor_3 = helper.make_tensor("value2", TensorProto.FLOAT, const_val.shape, const_val.tobytes(), raw=True)
+        tensor_4 = helper.make_tensor("value3", TensorProto.FLOAT, const_val.shape, const_val.tobytes(), raw=True)
+        node0 = helper.make_node('Constant', inputs=[], outputs=["value0"], value=tensor_1)
+        node1 = helper.make_node('Constant', inputs=[], outputs=["value1"], value=tensor_2)
+        node4 = helper.make_node("Mul", ["value0", "value1"], ["output1"])
+        node5 = helper.make_node("Mul", ["value2", "output1"], ["output2"])
+        node6 = helper.make_node("Mul", ["value3", "output2"], ["OUT"])
+
+        graph = helper.make_graph(
+            [node0, node1, node4, node5, node6],
+            "test_duplicated_duplicated_constant",
+            [helper.make_tensor_value_info("value2", TensorProto.FLOAT, (3,))],
+            [helper.make_tensor_value_info("OUT", TensorProto.FLOAT, (3,))],
+            [tensor_3, tensor_4]
+        )
+
+        model_proto = self.make_model(graph, producer_name="onnx-tests")
+        self.run_merge_duplicated_nodes_compare(["OUT"], {}, model_proto, op_type="Constant", remaining_op_num=0,
+                                                graph_validator=lambda g: self._check_initializer_num(g, 2))
 
     def test_duplicated_node_is_graph_output(self):
         node0 = helper.make_node('Add', inputs=["X", "X"], outputs=["value0"])
@@ -842,11 +903,12 @@ class OptimizerTests(Tf2OnnxBackendTestBase):
              helper.make_tensor_value_info("value2", TensorProto.FLOAT, (5, 5))],
         )
 
-        model_proto = helper.make_model(graph, producer_name="onnx-tests")
+        model_proto = self.make_model(graph, producer_name="onnx-tests")
         self.run_merge_duplicated_nodes_compare(["value1", "value2"],
                                                 {"X": np.random.randn(5, 5).astype(np.float32)}, model_proto,
                                                 op_type="Add", remaining_op_num=2)
 
+    @check_opset_min_version(10, "Dropout in opset 10 produces mask of 'bool' type")
     def test_duplicated_different_output_length(self):
         node0 = helper.make_node('Dropout', inputs=["X"], outputs=["value0"])
         node1 = helper.make_node('Dropout', inputs=["X"], outputs=["value1", "mask"])
@@ -861,7 +923,7 @@ class OptimizerTests(Tf2OnnxBackendTestBase):
              helper.make_tensor_value_info("value2", TensorProto.FLOAT, (5,))],
         )
 
-        model_proto = helper.make_model(graph, producer_name="onnx-tests")
+        model_proto = self.make_model(graph, producer_name="onnx-tests")
         self.run_merge_duplicated_nodes_compare(["value1", "mask", "value2"],
                                                 {"X": np.random.randn(5).astype(np.float32)},
                                                 model_proto,
@@ -885,7 +947,7 @@ class OptimizerTests(Tf2OnnxBackendTestBase):
             [helper.make_tensor_value_info("res", TensorProto.FLOAT, (5,))],
         )
 
-        model_proto = helper.make_model(graph, producer_name="onnx-tests")
+        model_proto = self.make_model(graph, producer_name="onnx-tests")
         self.run_merge_duplicated_nodes_compare(["res"], {"X": np.random.randn(5).astype(np.float32)},
                                                 model_proto,
                                                 op_type="Log", remaining_op_num=3)
@@ -909,7 +971,7 @@ class OptimizerTests(Tf2OnnxBackendTestBase):
             [helper.make_tensor_value_info("res", TensorProto.FLOAT, shape)],
         )
 
-        model_proto = helper.make_model(graph, producer_name="onnx-tests")
+        model_proto = self.make_model(graph, producer_name="onnx-tests")
         self.run_transpose_compare(["res"], {"X": np.random.randn(*shape).astype(np.float32)},
                                    model_proto, remaining_transpose_num=0)
 
@@ -930,7 +992,7 @@ class OptimizerTests(Tf2OnnxBackendTestBase):
             [helper.make_tensor_value_info("res", TensorProto.FLOAT, shape)],
         )
 
-        model_proto = helper.make_model(graph, producer_name="onnx-tests")
+        model_proto = self.make_model(graph, producer_name="onnx-tests")
         self.run_transpose_compare(["res"], {"X": np.random.randn(*shape).astype(np.float32)},
                                    model_proto, remaining_transpose_num=0)
 
@@ -950,7 +1012,7 @@ class OptimizerTests(Tf2OnnxBackendTestBase):
             [helper.make_tensor_value_info("res", TensorProto.FLOAT, shape)],
         )
 
-        model_proto = helper.make_model(graph, producer_name="onnx-tests")
+        model_proto = self.make_model(graph, producer_name="onnx-tests")
         self.run_transpose_compare(["res"], {},
                                    model_proto, remaining_transpose_num=0)
 
@@ -969,7 +1031,7 @@ class OptimizerTests(Tf2OnnxBackendTestBase):
             [helper.make_tensor_value_info("res", TensorProto.FLOAT, (1, 6, 1, 1, 6))],
         )
 
-        model_proto = helper.make_model(graph, producer_name="onnx-tests")
+        model_proto = self.make_model(graph, producer_name="onnx-tests")
         self.run_and_compare(["res"], {"X": np.random.randn(1).astype(np.float32)}, model_proto,
                              "Unsqueeze", 0)
 
@@ -988,7 +1050,7 @@ class OptimizerTests(Tf2OnnxBackendTestBase):
             [helper.make_tensor_value_info("res", TensorProto.INT64, shape)],
         )
 
-        model_proto = helper.make_model(graph, producer_name="onnx-tests")
+        model_proto = self.make_model(graph, producer_name="onnx-tests")
         self.run_and_compare(["res"], {"X": np.random.randn(*shape).astype(np.int64)}, model_proto,
                              "Cast", 0)
     # Const Fold Optimizer Tests End

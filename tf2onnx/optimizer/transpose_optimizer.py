@@ -197,7 +197,7 @@ class TransposeOptimizer(GraphOptimizerBase):
             return False
         # make sure node's all input transpose all have only 1 consumer node,
         # otherwise, it would impact their other output nodes
-        if self._nodes_has_single_consumer_node(node.inputs):
+        if self._nodes_has_single_consumer_node(node.inputs) and len(node.output) == 1:
             self._create_transpose_pairs_after_node(node)
             input_transposes = set(node.inputs)
             for n in input_transposes:
@@ -383,16 +383,17 @@ class TransposeOptimizer(GraphOptimizerBase):
                 numpy_val = target_node.get_tensor_value(as_list=False)
                 # Optional 1D bias to be added to the convolution, has size of M
                 if len(numpy_val.shape) - numpy_val.shape.count(1) > 1:
+                    self.logger.debug("Bias is not 1D, can not merge Conv and Add")
                     return self._handle_node_having_branches(node)
 
-                rank = len(numpy_val.shape)
-                utils.make_sure(rank in (1, 4), "only support bias rank = 4 or 1")
-                # to make rank = 4
-                if rank == 1:
-                    numpy_val = numpy_val.reshape((1, 1, 1, numpy_val.shape[0]))
+                bias_size = max(numpy_val.shape)
+                size_m = t_p.inputs[1].output_shapes[0][0]
+                if bias_size != size_m:
+                    self.logger.debug("Bias size is not M, can not merge Conv and Add")
+                    return self._handle_node_having_branches(node)
 
-                transposed_val = np.transpose(numpy_val, (0, 3, 1, 2))
-                target_node.set_tensor_value(transposed_val)
+                target_val = numpy_val.reshape(bias_size)
+                target_node.set_tensor_value(target_val)
 
                 conv_inputs = [t_p.input[0], t_p.input[1], node.input[1]]
                 conv_node = self._g.make_node(t_p.type, conv_inputs, attr=t_p.attr_onnx)
@@ -500,9 +501,6 @@ class TransposeOptimizer(GraphOptimizerBase):
             return False
 
         if node.get_attr("axes"):
-            squeeze_axes = sorted(list(node.get_attr("axes").ints))
-            trans_perm = list(trans.get_attr("perm").ints)
-            squeeze_shape = self._g.get_shape(node.output[0])
             # switch tran and squeeze
             # 1 switch
             ops = self._g.get_nodes()
@@ -510,13 +508,20 @@ class TransposeOptimizer(GraphOptimizerBase):
             node.input[0] = trans.input[0]
             trans.input[0] = node.output[0]
             # 2 correct attr of nodes
+            squeeze_axes = sorted(list(node.get_attr("axes").ints))
+            trans_perm = list(trans.get_attr("perm").ints)
             new_perm, new_squeeze_axes = _calculate_new_attr(ori_perm=trans_perm, ori_squeeze_axes=squeeze_axes)
             trans.set_attr("perm", new_perm)
             node.set_attr("axes", new_squeeze_axes)
             # 3 set shape
+            squeeze_shape = self._g.get_shape(node.output[0])
             self._g.set_shape(trans.output[0], squeeze_shape)
             input_shape = self._g.get_shape(node.input[0])
-            new_squeeze_output_shape = [input_shape[i] for i in range(4) if i not in new_squeeze_axes]
+            if input_shape is not None:
+                new_squeeze_output_shape = [input_shape[i] for i in range(4) if i not in new_squeeze_axes]
+            else:
+                new_squeeze_output_shape = [-1]*4
+                self.logger.warning("%s's shape is unknown, which may interfere further optimization", node.input[0])
             self._g.set_shape(node.output[0], new_squeeze_output_shape)
             return True
         return False
@@ -547,15 +552,23 @@ class TransposeOptimizer(GraphOptimizerBase):
         axes = None
         if self._g.opset < 10:
             axes = node.get_attr("axes").ints
+            if axes == [0, 1, 2, 3]:
+                node.set_attr("axes", NCHW_TO_NHWC)
+                return self._switch_transpose_and_node(node, trans)
         else:  # in opset 10, axes is input instead of an attribute.
-            if len(node.inputs) >= 4:
-                axes_node = node.inputs[3]
-                if axes_node.is_const():
-                    axes = axes_node.get_tensor_value(as_list=True)
-
-        if axes == [0, 1, 2, 3]:
-            node.set_attr("axes", NCHW_TO_NHWC)
-            return self._switch_transpose_and_node(node, trans)
+            if len(node.inputs) >= 4 and node.inputs[3].is_const():
+                axes = node.inputs[3].get_tensor_value(as_list=True)
+                if axes == [0, 1, 2, 3]:
+                    # axes node might be shared
+                    new_axes = np.array(NCHW_TO_NHWC, dtype=np.int64)
+                    if self._nodes_has_single_consumer_node([node]):
+                        node.inputs[3].set_tensor_value(new_axes)
+                    else:
+                        new_axes_const = self._g.make_const(
+                            utils.make_name(node.inputs[3].name), new_axes
+                        )
+                        self._g.replace_input(node, node.input[3], new_axes_const.output[0])
+                    return self._switch_transpose_and_node(node, trans)
         return False
 
     def _simple_through_handler(self, trans, node):
