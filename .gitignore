@@ -18,3 +18,5 @@ run.sh
 *.gz
 *.zip
 *mobilenet_v1_0.75_192/
+*.dot
+visualization/output/graphs/graph*.pdf

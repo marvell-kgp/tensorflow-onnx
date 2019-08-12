@@ -42,6 +42,8 @@ def write_nodes(ops, filename):
 			input_list.append(input_dict)
 		dict_node['inputs'] = input_list
 
+		
+
 		list_output_nodes.append(dict_node)
 
 	outstr = str(list_output_nodes)
@@ -79,7 +81,10 @@ def write_onnx(g, filename):
 			input_node['shape'] = input_name.split("[")[1].split("]")[0].replace("," , "").split()
 			input_list.append(input_node)
 		dict_node['inputs'] = input_list
-		
+
+
+		print(node.attr)
+
 		list_output.append(dict_node)
                 
 		# print("Input Node:", file=writer)
