@@ -83,7 +83,7 @@ def write_onnx(g, filename):
 		dict_node['inputs'] = input_list
 
 
-		print(node.attr)
+# 		print(node.attr)
 
 		list_output.append(dict_node)
                 
