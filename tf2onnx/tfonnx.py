@@ -520,8 +520,6 @@ def process_tf_graph(tf_graph, continue_on_error=False, verbose=False, target=No
 
     g = Graph(onnx_nodes, output_shapes, dtypes, target, opset, extra_opset, output_names)
 
-    write_onnx(g, metadata_dir + '/onnx_data.txt')
-
     # create ops mapping for the desired opsets
     ops_mapping = handler.tf_op.create_mapping(g.opset, g.extra_opset)
 
@@ -600,6 +598,8 @@ def process_tf_graph(tf_graph, continue_on_error=False, verbose=False, target=No
     topological_sort(g, continue_on_error)
 
     g.update_proto()
+
+    # write_onnx(g, metadata_dir + '/onnx_data.txt')
 
     logger.verbose(
         "Summay Stats:\n"

@@ -17,6 +17,7 @@ import tensorflow as tf
 from tf2onnx.tfonnx import process_tf_graph, tf_optimize
 from tf2onnx import constants, loader, logging, utils, optimizer
 
+from visualization.codes.generate_metadata.metadata import *
 
 # pylint: disable=unused-argument
 
@@ -148,6 +149,9 @@ def main():
                              metadata_dir=args.metadata_dir)
 
     onnx_graph = optimizer.optimize_graph(g)
+
+    write_onnx(onnx_graph, args.metadata_dir + '/onnx_data.txt')
+
     model_proto = onnx_graph.make_model("converted from {}".format(model_path))
 
     # write onnx graph

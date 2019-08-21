@@ -19,6 +19,11 @@ def write_nodes(ops, filename):
 		dict_node = {}
 		dict_node['op_name'] = node.name.split(":")[0] if '/' in node.name else node.name
 
+		# try:
+		# 	dict_node['dtype'] = utils.map_tf_dtype(utils.get_tf_node_attr(node, "dtype"))
+		# except:
+		# 	dict_node['dtype'] = None 
+
 		output_list = []
 		for node_output in node.outputs:
 			output_dict = {}
@@ -27,6 +32,12 @@ def write_nodes(ops, filename):
 			if (len(shape) > 0) and (shape[0] is None):
 				shape[0] = -1
 			output_dict['shape'] = shape
+
+			if(node_output.dtype.name is not None):
+				output_dict['dtype'] = node_output.dtype.name
+			else:
+				output_dict['dtype'] = None 
+			
 			output_list.append(output_dict)
 		dict_node['output'] = output_list
 # 
@@ -39,6 +50,12 @@ def write_nodes(ops, filename):
 			if (len(shape) > 0) and (shape[0] is None):
 				shape[0] = -1
 			input_dict['shape'] = shape
+
+			if(node_input.dtype.name is not None):
+				input_dict['dtype'] = node_input.dtype.name
+			else:
+				input_dict['dtype'] = None
+				
 			input_list.append(input_dict)
 		dict_node['inputs'] = input_list
 
@@ -63,27 +80,34 @@ def write_onnx(g, filename):
 	list_output = []
 	for node in g.get_nodes():
 		dict_node = {}
-		dict_node['op_name'] = node.name.split(":")[0] if '/' in node.name else node.name
-
+		dict_node['op_name'] = node.name
 		output_list = []
-		for output_name in node.output:
+		for node_output in node.output:
 			output_dict = {}
-			output_dict['name'] = output_name.split("[")[0]
-			output_dict['shape'] = g.get_shape(output_name) 
+			output_dict['name'] = g.get_node_by_output_in_current_graph(node_output).name
+			if(g.get_shape(node_output) is not None):
+				output_dict['shape'] = g.get_shape(node_output)
+			else:
+				output_dict['shape'] = "None"
+			
+			output_dict['dtype'] = g.get_dtype(node_output)
+			# print(g.get_dtype(node_output))
 			output_list.append(output_dict)
 		dict_node['output'] = output_list
 
 		input_list = []
-		input_names = ["{}{}".format(n, g.get_shape(n)) for n in node.input]
-		for input_name in input_names:
+		for node_input in node.input:
 			input_node = {}
-			input_node['name'] = input_name.split("[")[0]
-			input_node['shape'] = input_name.split("[")[1].split("]")[0].replace("," , "").split()
+			input_node['name'] = g.get_node_by_output_in_current_graph(node_input).name
+			if(g.get_shape(node_input) is not None):
+				input_node['shape'] = g.get_shape(node_input)
+			else:
+				input_node['shape'] = "None"
+			
+			input_node['dtype'] = g.get_dtype(node_input)
+
 			input_list.append(input_node)
 		dict_node['inputs'] = input_list
-
-
-# 		print(node.attr)
 
 		list_output.append(dict_node)
                 
