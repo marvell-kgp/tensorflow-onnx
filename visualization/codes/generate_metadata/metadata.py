@@ -17,8 +17,7 @@ def write_nodes(ops, filename):
 
 	for node in ops:
 		dict_node = {}
-		dict_node['op_name'] = node.name.split(":")[0] if '/' in node.name else node.name
-
+		dict_node['op_name'] = node.name
 		# try:
 		# 	dict_node['dtype'] = utils.map_tf_dtype(utils.get_tf_node_attr(node, "dtype"))
 		# except:
@@ -27,7 +26,7 @@ def write_nodes(ops, filename):
 		output_list = []
 		for node_output in node.outputs:
 			output_dict = {}
-			output_dict['name'] = node_output.name
+			output_dict['name'] = node_output.name.split(':')[0]
 			shape = utils.get_tf_tensor_shape(node_output)
 			if (len(shape) > 0) and (shape[0] is None):
 				shape[0] = -1
@@ -45,7 +44,7 @@ def write_nodes(ops, filename):
 		input_list = []
 		for node_input in node.inputs:
 			input_dict = {}
-			input_dict['name'] = node_input.name
+			input_dict['name'] = node_input.name.split(':')[0]
 			shape = utils.get_tf_tensor_shape(node_input)
 			if (len(shape) > 0) and (shape[0] is None):
 				shape[0] = -1
