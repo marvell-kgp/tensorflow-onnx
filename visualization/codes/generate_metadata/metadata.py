@@ -80,6 +80,7 @@ def write_onnx(g, filename):
 	for node in g.get_nodes():
 		dict_node = {}
 		dict_node['op_name'] = node.name
+		dict_node['operator_name'] = node.type
 		output_list = []
 		for node_output in node.output:
 			output_dict = {}
