@@ -3,7 +3,7 @@ import sys
 sys.path.append("../../../")
 from tf2onnx import utils
 
-def write(lists, filename):	
+def write(lists, filename):
 	writer = open(filename, 'w+')
 	for idx, item in enumerate(lists):
 		print(idx, file=writer)
@@ -21,7 +21,7 @@ def write_nodes(ops, filename):
 		# try:
 		# 	dict_node['dtype'] = utils.map_tf_dtype(utils.get_tf_node_attr(node, "dtype"))
 		# except:
-		# 	dict_node['dtype'] = None 
+		# 	dict_node['dtype'] = None
 
 		output_list = []
 		for node_output in node.outputs:
@@ -35,11 +35,11 @@ def write_nodes(ops, filename):
 			if(node_output.dtype.name is not None):
 				output_dict['dtype'] = node_output.dtype.name
 			else:
-				output_dict['dtype'] = None 
-			
+				output_dict['dtype'] = None
+
 			output_list.append(output_dict)
 		dict_node['output'] = output_list
-# 
+#
 
 		input_list = []
 		for node_input in node.inputs:
@@ -54,12 +54,10 @@ def write_nodes(ops, filename):
 				input_dict['dtype'] = node_input.dtype.name
 			else:
 				input_dict['dtype'] = None
-				
+
 			input_list.append(input_dict)
 		dict_node['inputs'] = input_list
-
-		
-
+		dict_node['operator_name'] = node.type
 		list_output_nodes.append(dict_node)
 
 	outstr = str(list_output_nodes)
@@ -69,7 +67,7 @@ def write_nodes(ops, filename):
 	# print(list_output_nodes, file=writer)
 	writer.close()
 
-def write_str(content, filename):	
+def write_str(content, filename):
 	writer = open(filename, 'w')
 	print(content, file=writer)
 	writer.close()
@@ -89,7 +87,7 @@ def write_onnx(g, filename):
 				output_dict['shape'] = g.get_shape(node_output)
 			else:
 				output_dict['shape'] = "None"
-			
+
 			output_dict['dtype'] = g.get_dtype(node_output)
 			# print(g.get_dtype(node_output))
 			output_list.append(output_dict)
@@ -103,14 +101,14 @@ def write_onnx(g, filename):
 				input_node['shape'] = g.get_shape(node_input)
 			else:
 				input_node['shape'] = "None"
-			
+
 			input_node['dtype'] = g.get_dtype(node_input)
 
 			input_list.append(input_node)
 		dict_node['inputs'] = input_list
 
 		list_output.append(dict_node)
-                
+
 		# print("Input Node:", file=writer)
 		# print(input_names, file=writer)
 		# print("Output Node:", file=writer)
@@ -118,7 +116,7 @@ def write_onnx(g, filename):
 		# print("Shape:", file=writer)
 		# print(g.get_shape(node.output[0]), file=writer)
 		# print(node.summary, file=writer)
-	#print(str(list_output))	
+	#print(str(list_output))
 	outstr = str(list_output)
 	outstr = outstr.replace("\'", "\"")
 	parsed_json=json.loads(outstr)
