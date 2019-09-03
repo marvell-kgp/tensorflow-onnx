@@ -66,3 +66,4 @@ if __name__ == '__main__':
     parser.add_argument("--model_dir", type=str, default="", help="Model folder to export")
     parser.add_argument("--output_node_names", type=str, default="", help="The name of the output nodes, comma separated.")
     args = parser.parse_args()
+    freeze_graph(args.model_dir, args.output_node_names)

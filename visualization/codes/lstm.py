@@ -11,11 +11,11 @@ mnist=input_data.read_data_sets("/tmp/data/",one_hot=True)
 
 #define constants
 #unrolled through 28 time steps
-time_steps=28
+time_steps=4
 #hidden LSTM units
-num_units=128
+num_units=12
 #rows of 28 pixels
-n_input=28
+n_input=28*7
 #learning rate for adam
 learning_rate=0.001
 #mnist is meant to be classified in 10 classes(0-9).
@@ -38,7 +38,7 @@ input=tf.unstack(x ,time_steps,1)
 
 #defining the network
 #cell = rnn.BasicLSTMCell(num_units,forget_bias=0)
-lstm_layer = tf.nn.rnn_cell.MultiRNNCell([rnn.BasicLSTMCell(num_units) for _ in range(3)])
+lstm_layer = tf.nn.rnn_cell.MultiRNNCell([rnn.BasicLSTMCell(num_units) for _ in range(2)])
 outputs, _ = rnn.static_rnn(lstm_layer,input,dtype="float32")
 
 #converting last output of dimension [batch_size,num_units] to [batch_size,n_classes] by out_weight multiplication
