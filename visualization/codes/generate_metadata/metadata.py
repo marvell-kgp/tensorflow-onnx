@@ -2,6 +2,7 @@ import json
 import sys
 sys.path.append("../../../")
 from tf2onnx import utils
+import tensorflow as tf
 
 def write(lists, filename):
 	writer = open(filename, 'w+')
@@ -16,6 +17,8 @@ def write_nodes(ops, filename):
 	list_output_nodes = []
 
 	for node in ops:
+		attr_dictionary = dict(node.node_def.attr.items())
+
 		dict_node = {}
 		dict_node['op_name'] = node.name
 		# try:
@@ -56,8 +59,34 @@ def write_nodes(ops, filename):
 				input_dict['dtype'] = None
 
 			input_list.append(input_dict)
+
 		dict_node['inputs'] = input_list
 		dict_node['operator_name'] = node.type
+		# print(attr_dictionary.keys())
+
+		## Code for extracting attributes in graph
+		if('padding' in attr_dictionary.keys()):
+			padding = attr_dictionary['padding'].s
+			dict_node['padding'] = padding.decode("utf-8")
+		else:
+			dict_node['padding'] = "None"
+
+		if('strides' in attr_dictionary.keys()):
+			strides = attr_dictionary['strides'].list.i
+			strides_list = [int(a) for a in strides]
+			dict_node['strides'] = strides_list
+		else:
+			dict_node['strides'] = "None"
+
+		if('dilations' in attr_dictionary.keys()):
+			dilations = attr_dictionary['dilations'].list.i
+			dilations_list = [int(a) for a in dilations]
+			dict_node['dilations'] = dilations_list
+		else:
+			dict_node['dilations'] = "None"
+		
+
+
 		list_output_nodes.append(dict_node)
 
 	outstr = str(list_output_nodes)
@@ -107,16 +136,34 @@ def write_onnx(g, filename):
 			input_list.append(input_node)
 		dict_node['inputs'] = input_list
 
+		# Attributes of onnx graphs
+		attr_dictionary = node.attr
+		if('strides' in attr_dictionary.keys()):
+			dict_node['strides'] = list(attr_dictionary['strides'].ints)
+		else:
+			dict_node['strides'] = "None"
+
+		if('dilations' in attr_dictionary.keys()):
+			dict_node['dilations'] = list(attr_dictionary['dilations'].ints)
+		else:
+			dict_node['dilations'] = "None"
+
+		if('padding' in attr_dictionary.keys()):
+			dict_node['padding'] = attr_dictionary['padding'].s.decode("utf-8")
+		else:
+			dict_node['padding'] = "None"
+
+
 		list_output.append(dict_node)
 
-		# print("Input Node:", file=writer)
-		# print(input_names, file=writer)
-		# print("Output Node:", file=writer)
-		# print(node.name, file=writer)
-		# print("Shape:", file=writer)
-		# print(g.get_shape(node.output[0]), file=writer)
-		# print(node.summary, file=writer)
-	#print(str(list_output))
+	# 	# print("Input Node:", file=writer)
+	# 	# print(input_names, file=writer)
+	# 	# print("Output Node:", file=writer)
+	# 	# print(node.name, file=writer)
+	# 	# print("Shape:", file=writer)
+	# 	# print(g.get_shape(node.output[0]), file=writer)
+	# 	# print(node.summary, file=writer)
+	# #print(str(list_output))
 	outstr = str(list_output)
 	outstr = outstr.replace("\'", "\"")
 	parsed_json=json.loads(outstr)

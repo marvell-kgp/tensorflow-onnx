@@ -10,7 +10,7 @@ from tensorflow.examples.tutorials.mnist import input_data
 mnist=input_data.read_data_sets("/tmp/data/",one_hot=True)
 
 #define constants
-#unrolled through 28 time steps
+#unrolled through 4 time steps
 time_steps=4
 #hidden LSTM units
 num_units=12

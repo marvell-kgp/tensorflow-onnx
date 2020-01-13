@@ -148,6 +148,8 @@ def main():
                              inputs_as_nchw=args.inputs_as_nchw,
                              metadata_dir=args.metadata_dir)
 
+
+
     onnx_graph = optimizer.optimize_graph(g)
 
     write_onnx(onnx_graph, args.metadata_dir + '/onnx_data.txt')

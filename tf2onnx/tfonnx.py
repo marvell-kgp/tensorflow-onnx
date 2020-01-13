@@ -122,7 +122,7 @@ def tflist_to_onnx(node_list, shape_override, metadata_dir):
             except Exception as ex:
                 logger.error("pass1 convert failed for %s, ex=%s", node, ex)
                 raise
-    write_nodes(ops, metadata_dir + '/tf_data.txt')
+    # write_nodes(ops, metadata_dir + '/tf_data.txt')
     return onnx_nodes, op_cnt, attr_cnt, output_shapes, dtypes
 
 
@@ -500,6 +500,10 @@ def process_tf_graph(tf_graph, continue_on_error=False, verbose=False, target=No
         inputs_as_nchw = []
     if target is None:
         target = constants.DEFAULT_TARGET
+
+    # for getting tensorflow metadata
+    ops_list = tf_graph.get_operations()
+    write_nodes(ops_list, metadata_dir + '/tf_data.txt')
 
     onnx_nodes, op_cnt, attr_cnt, output_shapes, dtypes = tensorflow_to_onnx(tf_graph, shape_override, metadata_dir)
 
